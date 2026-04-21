@@ -275,10 +275,66 @@ function renderFlatComparisonChart(container, config) {
   container.append(svg);
 }
 
+// Dual line chart – smooth lines for multiple series (e.g., Referral & Sub commissions)
+function renderDualLineChart(container, config) {
+  container.innerHTML = "";
+  // Legend
+  appendLegend(container, config.series.map((item) => ({ label: item.label, color: item.color })));
+
+  const { width, height } = getDimensions(container);
+  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": config.title });
+  const margin = { top: 18, right: 24, bottom: 40, left: 42 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  const maxValue = Math.max(1, ...config.series.flatMap((s) => s.values));
+  const yMax = config.yMax || Math.ceil(maxValue * 1.1);
+  const baselineY = margin.top + chartHeight - 8;
+
+  // Y‑grid lines & labels
+  [0, yMax].forEach((tick) => {
+    const y = baselineY - (tick / yMax) * (chartHeight - 10);
+    svg.append(svgEl("line", { x1: margin.left, x2: width - margin.right, y1: y, y2: y, stroke: "#dbe3ef" }));
+    appendAxisLabel(svg, { x: margin.left - 6, y: y + 4, "text-anchor": "end", fill: "#69768d", "font-size": "10" }, config.yFormatter ? config.yFormatter(tick) : String(Math.round(tick)));
+  });
+
+  // Baseline
+  svg.append(svgEl("line", { x1: margin.left, x2: width - margin.right, y1: baselineY, y2: baselineY, stroke: "#cfd6df" }));
+
+  // X‑axis ticks (sample three points)
+  const sampleIndexes = [0, Math.floor(config.labels.length / 2), config.labels.length - 1];
+  sampleIndexes.forEach((idx) => {
+    const x = margin.left + (idx / (config.labels.length - 1)) * chartWidth;
+    svg.append(svgEl("line", { x1: x, x2: x, y1: baselineY, y2: baselineY + 5, stroke: "#8b97aa" }));
+    appendAxisLabel(svg, { x, y: height - 12, "text-anchor": "middle", fill: "#69768d", "font-size": "10" }, config.labels[idx]);
+  });
+
+  // Draw each series as a smooth line (optional subtle markers)
+  config.series.forEach((series) => {
+    const points = series.values.map((value, i) => {
+      const x = margin.left + (i / (config.labels.length - 1)) * chartWidth;
+      const y = baselineY - (value / yMax) * (chartHeight - 10);
+      return [x, y];
+    });
+    const pathData = smoothLinePath(points);
+    svg.append(svgEl("path", { d: pathData, fill: "none", stroke: series.color, "stroke-width": "2" }));
+    // Minimal markers (small circles) – keep subtle
+    points.forEach(([x, y]) => {
+      svg.append(svgEl("circle", { cx: x, cy: y, r: "2", fill: series.color }));
+    });
+  });
+
+  container.append(svg);
+}
+
+
+
+
 window.chartUtils = {
   formatMoney,
   renderLineAreaChart,
   renderVolumeChart,
   renderDualAxisChart,
   renderFlatComparisonChart,
+  renderDualLineChart,
+  formatCompactNumber,
 };

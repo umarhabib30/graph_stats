@@ -1,12 +1,10 @@
 function mountNewUsersChart(container, data) {
-  window.chartUtils.renderLineAreaChart(container, {
-    title: "New users cumulative chart",
-    seriesLabel: "Cumulative New Users",
+  window.chartUtils.renderDualLineChart(container, {
+    title: "Cumulative New Users",
     labels: data.labels,
-    values: data.cumulative,
-    yTickStep: 25,
-    lineColor: "#2268ff",
-    fillColor: "rgba(34, 104, 255, 0.14)",
+    series: [
+      { label: "Cumulative New Users", color: "#2268ff", values: data.cumulative },
+    ],
   });
 }
 

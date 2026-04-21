@@ -54,7 +54,7 @@ function renderDashboard() {
   setText("#withdrawalTotal", formatMoney(dashboardData.withdrawals.totalAmount));
   setText("#withdrawalUsersTotal", String(dashboardData.withdrawals.totalUsers));
 
-  window.chartUtils.renderFlatComparisonChart($("#earningsChart"), {
+  window.chartUtils.renderDualLineChart($("#earningsChart"), {
     title: "My earnings chart",
     labels,
     series: [
