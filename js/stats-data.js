@@ -41,6 +41,8 @@ const CLIENT_CONFIG = {
       referral: 218,
       sub: 158,
       monthly: [161, 97, 118],
+      referralMonthly: [93, 56, 69],
+      subMonthly: [68, 41, 49],
     },
     fees: {
       total: 135942.18,
@@ -54,11 +56,12 @@ const CLIENT_CONFIG = {
       totalAmount: 898229.42,
       totalUsers: 221,
       amountMonthly: [241903.26, 285444.89, 370881.27],
+      usersMonthly: [60, 80, 81],
     },
     withdrawals: {
       totalAmount: 567495.21,
       totalUsers: 89,
-      usersMonthly: [22, 28, 39],
+      usersMonthly: [15, 25, 49],
       amountMonthly: [152846.12, 171903.54, 242745.55],
     },
   },
@@ -181,26 +184,28 @@ function buildNewUsers() {
 }
 
 function buildVolume() {
-  const daily = expandMonthlyAmounts(CLIENT_CONFIG.metrics.volume.monthly, {
-    seed: 4184,
-    startBias: 0.73,
-    endBias: 1.29,
-    monthLift: 0.06,
-    waveScale: 1.52,
-    noiseScale: 0.35,
-  });
+  const result = buildLineMetric(CLIENT_CONFIG.metrics.volume, 4184, 1.52);
 
   return {
-    total: CLIENT_CONFIG.metrics.volume.total,
-    referral: CLIENT_CONFIG.metrics.volume.referral,
-    sub: CLIENT_CONFIG.metrics.volume.sub,
+    total: result.total,
+    referral: result.referral,
+    sub: result.sub,
     monthly: CLIENT_CONFIG.metrics.volume.monthly,
-    daily,
+    daily: result.totalDaily,
+    referralDaily: result.referralDaily,
+    subDaily: result.subDaily,
   };
 }
 
-function buildDeposits(newUsersDaily) {
-  const dailyUsers = [...newUsersDaily];
+function buildDeposits() {
+  const userDaily = expandMonthlyIntegers(CLIENT_CONFIG.metrics.deposits.usersMonthly, {
+    seed: 8122,
+    startBias: 0.6,
+    endBias: 1.2,
+    startStep: 0.1,
+    endStep: 0.1,
+    noiseScale: 0.3,
+  });
   const amountDaily = expandMonthlyAmounts(CLIENT_CONFIG.metrics.deposits.amountMonthly, {
     seed: 8123,
     startBias: 0.82,
@@ -208,7 +213,7 @@ function buildDeposits(newUsersDaily) {
     monthLift: 0.11,
     waveScale: 1.7,
     noiseScale: 0.46,
-  }).map((value, index) => clamp(value + dailyUsers[index] * 18.5, 20, 25000));
+  }).map((value, index) => clamp(value + userDaily[index] * 18.5, 20, 25000));
   const normalizedAmountDaily = distributeAmounts(
     CLIENT_CONFIG.metrics.deposits.totalAmount,
     amountDaily,
@@ -218,8 +223,8 @@ function buildDeposits(newUsersDaily) {
     totalAmount: CLIENT_CONFIG.metrics.deposits.totalAmount,
     totalUsers: CLIENT_CONFIG.metrics.deposits.totalUsers,
     amountMonthly: CLIENT_CONFIG.metrics.deposits.amountMonthly,
-    userDaily: dailyUsers,
-    userCumulative: cumulative(dailyUsers),
+    userDaily,
+    userCumulative: cumulative(userDaily),
     amountDaily: normalizedAmountDaily,
   };
 }

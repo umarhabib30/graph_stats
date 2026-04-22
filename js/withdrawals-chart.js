@@ -1,11 +1,15 @@
 function mountWithdrawalsChart(container, data) {
-  window.chartUtils.renderDualLineChart(container, {
+  window.chartUtils.renderDualAxisLineChart(container, {
     title: "Withdrawals and Users",
     labels: data.labels,
-    series: [
-      { label: "Withdrawal Amount", color: "#d85a63", values: data.amounts },
-      { label: "Users Withdrew", color: "#2268ff", values: data.users },
-    ],
+    amounts: data.amounts,
+    users: data.users,
+    amountTick: 8000,
+    userTick: 20,
+    amountLabel: "Withdrawal Amount",
+    userLabel: "Users Withdrew",
+    amountColor: "#d85a63",
+    userColor: "#2268ff",
   });
 }
 

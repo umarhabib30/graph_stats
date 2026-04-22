@@ -1,9 +1,12 @@
 function mountTradingVolumeChart(container, data) {
-  window.chartUtils.renderVolumeChart(container, {
+  window.chartUtils.renderFlatComparisonChart(container, {
+    title: "Trading volume chart",
     labels: data.labels,
-    values: data.values,
-    barColor: "#f2a33a",
-    lineColor: "#2268ff",
+    series: [
+      { label: "Referral's Volume", color: "#64d98a", values: data.referralDaily },
+      { label: "Sub Team's Volume", color: "#5a88ff", values: data.subDaily },
+    ],
+    yFormatter: (value) => `${value}M`,
   });
 }
 

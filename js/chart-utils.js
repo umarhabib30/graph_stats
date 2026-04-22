@@ -325,8 +325,60 @@ function renderDualLineChart(container, config) {
 
   container.append(svg);
 }
+function renderDualAxisLineChart(container, config) {
+  container.innerHTML = "";
+  appendLegend(container, [
+    { label: config.amountLabel, color: config.amountColor },
+    { label: config.userLabel, color: config.userColor },
+  ]);
 
+  const { width, height } = getDimensions(container);
+  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": config.title });
+  const margin = { top: 20, right: 58, bottom: 44, left: 66 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  const baselineY = margin.top + chartHeight;
+  const amountMax = Math.ceil(Math.max(...config.amounts) / config.amountTick) * config.amountTick;
+  const userMax = Math.ceil(Math.max(...config.users) / config.userTick) * config.userTick;
 
+  [0, amountMax / 2, amountMax].forEach((tick) => {
+    const y = baselineY - (tick / amountMax) * chartHeight;
+    svg.append(svgEl("line", { x1: margin.left, x2: width - margin.right, y1: y, y2: y, stroke: "#dbe3ef" }));
+    appendAxisLabel(svg, { x: margin.left - 12, y: y + 4, "text-anchor": "end", fill: "#69768d", "font-size": "10" }, formatCompactNumber(tick));
+  });
+
+  [0, userMax / 2, userMax].forEach((tick) => {
+    const y = baselineY - (tick / userMax) * chartHeight;
+    appendAxisLabel(svg, { x: width - margin.right + 10, y: y + 4, fill: "#69768d", "font-size": "10" }, String(Math.round(tick)));
+  });
+
+  svg.append(svgEl("line", { x1: margin.left, x2: width - margin.right, y1: baselineY, y2: baselineY, stroke: "#cfd6df" }));
+
+  const sampleIndexes = [0, Math.floor(config.labels.length / 2), config.labels.length - 1];
+  sampleIndexes.forEach((index) => {
+    const x = margin.left + (index / (config.labels.length - 1)) * chartWidth;
+    svg.append(svgEl("line", { x1: x, x2: x, y1: baselineY, y2: baselineY + 5, stroke: "#8b97aa" }));
+    appendAxisLabel(svg, { x, y: height - 12, "text-anchor": "middle", fill: "#69768d", "font-size": "10" }, config.labels[index]);
+  });
+
+  const amountPoints = config.amounts.map((value, i) => {
+    const x = margin.left + (i / (config.labels.length - 1)) * chartWidth;
+    const y = baselineY - (value / amountMax) * chartHeight;
+    return [x, y];
+  });
+  svg.append(svgEl("path", { d: smoothLinePath(amountPoints), fill: "none", stroke: config.amountColor, "stroke-width": "2" }));
+  amountPoints.forEach(([x, y]) => svg.append(svgEl("circle", { cx: x, cy: y, r: "2", fill: config.amountColor })));
+
+  const userPoints = config.users.map((value, i) => {
+    const x = margin.left + (i / (config.labels.length - 1)) * chartWidth;
+    const y = baselineY - (value / userMax) * chartHeight;
+    return [x, y];
+  });
+  svg.append(svgEl("path", { d: smoothLinePath(userPoints), fill: "none", stroke: config.userColor, "stroke-width": "2" }));
+  userPoints.forEach(([x, y]) => svg.append(svgEl("circle", { cx: x, cy: y, r: "2", fill: config.userColor })));
+
+  container.append(svg);
+}
 
 
 window.chartUtils = {
@@ -334,6 +386,7 @@ window.chartUtils = {
   renderLineAreaChart,
   renderVolumeChart,
   renderDualAxisChart,
+  renderDualAxisLineChart,
   renderFlatComparisonChart,
   renderDualLineChart,
   formatCompactNumber,

@@ -70,7 +70,8 @@ function renderDashboard() {
 
   window.mountTradingVolumeChart($("#tradingVolumeChart"), {
     labels,
-    values: dashboardData.tradingVolume.daily,
+    referralDaily: dashboardData.tradingVolume.referralDaily,
+    subDaily: dashboardData.tradingVolume.subDaily,
   });
 
   window.chartUtils.renderFlatComparisonChart($("#feeChart"), {
