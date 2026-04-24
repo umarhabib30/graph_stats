@@ -8,7 +8,7 @@ function mountWithdrawalsChart(container, data) {
     userTick: 20,
     amountLabel: "Withdrawal Amount",
     userLabel: "Users Withdrew",
-    amountColor: "#d85a63",
+    amountColor: "#28a745",
     userColor: "#2268ff",
   });
 }

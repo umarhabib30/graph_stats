@@ -198,36 +198,76 @@ function buildVolume() {
 }
 
 function buildDeposits() {
-  const userDaily = expandMonthlyIntegers(CLIENT_CONFIG.metrics.deposits.usersMonthly, {
-    seed: 8122,
-    startBias: 0.6,
-    endBias: 1.2,
-    startStep: 0.1,
-    endStep: 0.1,
-    noiseScale: 0.3,
-  });
-  const amountDaily = expandMonthlyAmounts(CLIENT_CONFIG.metrics.deposits.amountMonthly, {
-    seed: 8123,
-    startBias: 0.82,
-    endBias: 1.36,
-    monthLift: 0.11,
-    waveScale: 1.7,
-    noiseScale: 0.46,
-  }).map((value, index) => clamp(value + userDaily[index] * 18.5, 20, 25000));
+  // make user line curve start at 250 instead of 10  
+  const userDaily = expandMonthlyIntegers(
+    CLIENT_CONFIG.metrics.deposits.usersMonthly,
+    {
+      seed: 8122,
+      startBias: 0.6,
+      endBias: 1.2,
+      startStep: 0.1,
+      endStep: 0.1,
+      noiseScale: 0.3,
+    }
+  );
+
+  const amountDaily = expandMonthlyAmounts(
+    CLIENT_CONFIG.metrics.deposits.amountMonthly,
+    {
+      seed: 8123,
+      startBias: 0.82,
+      endBias: 1.36,
+      monthLift: 0.11,
+      waveScale: 1.7,
+      noiseScale: 0.46,
+    }
+  ).map((value, index) =>
+    clamp(value + userDaily[index] * 18.5, 20, 25000)
+  );
+
   const normalizedAmountDaily = distributeAmounts(
     CLIENT_CONFIG.metrics.deposits.totalAmount,
-    amountDaily,
+    amountDaily
   );
+
+  // 🔥 FIXED USERS LINE
+  const rawUserCumulative = cumulative(userDaily);
+  const totalUsers = CLIENT_CONFIG.metrics.deposits.totalUsers;
+  const startUsersBaseline = 50; // 👈 change (8–15 for different look)
+
+  const userCumulative = rawUserCumulative.map((value, index, arr) => {
+    const maxValue = arr[arr.length - 1] || 1;
+    const progress = index / (arr.length - 1);
+
+    // normalize and scale
+    const normalized = value / maxValue;
+    const base =
+      startUsersBaseline +
+      normalized * (totalUsers - startUsersBaseline);
+
+    // smooth realistic waves
+    const wave =
+      Math.sin(progress * Math.PI * 4.5) * 1.8 +
+      Math.sin(progress * Math.PI * 9.2) * 0.7 +
+      Math.sin(progress * Math.PI * 1.5) * 0.6;
+
+    return base + wave;
+  });
+
+  // 🔥 force start & end
+  userCumulative[0] = startUsersBaseline;
+  userCumulative[userCumulative.length - 1] = totalUsers;
 
   return {
     totalAmount: CLIENT_CONFIG.metrics.deposits.totalAmount,
-    totalUsers: CLIENT_CONFIG.metrics.deposits.totalUsers,
+    totalUsers,
     amountMonthly: CLIENT_CONFIG.metrics.deposits.amountMonthly,
     userDaily,
-    userCumulative: cumulative(userDaily),
+    userCumulative,
     amountDaily: normalizedAmountDaily,
   };
 }
+
 
 function buildWithdrawals() {
   const userDaily = expandMonthlyIntegers(CLIENT_CONFIG.metrics.withdrawals.usersMonthly, {
@@ -238,6 +278,7 @@ function buildWithdrawals() {
     endStep: 0.12,
     noiseScale: 0.4,
   });
+
   const amountDaily = expandMonthlyAmounts(CLIENT_CONFIG.metrics.withdrawals.amountMonthly, {
     seed: 5511,
     startBias: 0.78,
@@ -246,18 +287,41 @@ function buildWithdrawals() {
     waveScale: 1.55,
     noiseScale: 0.43,
   }).map((value, index) => clamp(value + userDaily[index] * 22.5, 18, 18000));
+
   const normalizedAmountDaily = distributeAmounts(
     CLIENT_CONFIG.metrics.withdrawals.totalAmount,
     amountDaily,
   );
 
+  const rawUserCumulative = cumulative(userDaily);
+  const startUsersBaseline = 18;
+  const totalUsers = CLIENT_CONFIG.metrics.withdrawals.totalUsers;
+
+  const userCumulative = rawUserCumulative.map((value, index, arr) => {
+    const maxValue = arr[arr.length - 1] || 1;
+    const progress = index / (arr.length - 1);
+
+    const base =
+      startUsersBaseline +
+      (value / maxValue) * (totalUsers - startUsersBaseline);
+
+    const wave =
+      Math.sin(progress * Math.PI * 4.2) * 1.8 +
+      Math.sin(progress * Math.PI * 9.4) * 0.6;
+
+    return base + wave;
+  });
+
+  // force exact last value = totalUsers
+  userCumulative[userCumulative.length - 1] = totalUsers;
+
   return {
     totalAmount: CLIENT_CONFIG.metrics.withdrawals.totalAmount,
-    totalUsers: CLIENT_CONFIG.metrics.withdrawals.totalUsers,
+    totalUsers: totalUsers,
     amountMonthly: CLIENT_CONFIG.metrics.withdrawals.amountMonthly,
     usersMonthly: CLIENT_CONFIG.metrics.withdrawals.usersMonthly,
     userDaily,
-    userCumulative: cumulative(userDaily),
+    userCumulative,
     amountDaily: normalizedAmountDaily,
   };
 }
